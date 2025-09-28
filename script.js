@@ -11,23 +11,23 @@ let currentMode = "factorization"; // 'factorization', 'roots', 'custom'
 // Sistema de sonidos
 const sounds = {
     click: new Howl({
-        src: ['Factorizacion/sound/click.wav'], // Agrega OGG para mayor compatibilidad
+        src: ['sound/click.wav'], // Agrega OGG para mayor compatibilidad
         volume: 0.3
     }),
     correct: new Howl({
-        src: ['Factorizacion/sound/correcto.wav'],
+        src: ['sound/correcto.wav'],
         volume: 0.7
     }),
     incorrect: new Howl({
-        src: ['Factorizacion/sound/incorect.wav'],
+        src: ['sound/incorect.wav'],
         volume: 0.5
     }),
     win: new Howl({
-        src: ['Factorizacion/sound/win.mp3'],
+        src: ['sound/win.mp3'],
         volume: 0.6
     }),
     next: new Howl({
-        src: ['Factorizacion/sound/next.ogg'],
+        src: ['sound/next.ogg'],
         volume: 0.5
     })
 };
@@ -708,5 +708,6 @@ function initGame() {
 
 // Iniciar el juego cuando se carga la página
 window.addEventListener("load", initGame);
+
 
 
