@@ -274,6 +274,7 @@ function updateButtonStates() {
   switch (currentMode) {
     case "custom":
       checkBtn.textContent = "Verificar Ecuación";
+      checkBtn.onclick = checkCustomEquation;
       customBtn.textContent = "Usar Ecuación Aleatoria";
       customEquationInputs.classList.remove("hidden");
       factorInputs.classList.add("hidden");
@@ -281,7 +282,8 @@ function updateButtonStates() {
       break;
 
     case "factorization":
-      checkBtn.textContent = "Verificar";
+      checkBtn.textContent = "Verificar Factorización";
+      checkBtn.onclick = checkFactorization;
       customBtn.textContent = "Ingresar Ecuación";
       customEquationInputs.classList.add("hidden");
       factorInputs.classList.remove("hidden");
@@ -290,6 +292,7 @@ function updateButtonStates() {
 
     case "roots":
       checkBtn.textContent = "Verificar Raíces";
+      checkBtn.onclick = checkRoots;
       customBtn.textContent = "Ingresar Ecuación";
       customEquationInputs.classList.add("hidden");
       factorInputs.classList.add("hidden");
@@ -522,7 +525,7 @@ function disableCustomEquation() {
   generateEquation();
 }
 
-// Verificar ecuación personalizada
+// Verificar ecuación personalizada - VERSIÓN CORREGIDA
 function checkCustomEquation() {
   // Obtener valores (b y c siempre serán positivos por la validación)
   const aSign = customASign.value;
@@ -536,14 +539,15 @@ function checkCustomEquation() {
   if (aValue < 1) {
     feedbackElement.textContent = "El coeficiente de x² debe ser mayor a 0.";
     feedbackElement.className = "feedback incorrect";
+    playSound("incorrect");
     return;
   }
 
   // Validar que b y c sean números válidos (positivos)
   if (bValue < 0 || cValue < 0) {
-    feedbackElement.textContent =
-      "Los coeficientes b y c deben ser números positivos. El signo se selecciona con las opciones + o -.";
+    feedbackElement.textContent = "Los coeficientes b y c deben ser números positivos. El signo se selecciona con las opciones + o -.";
     feedbackElement.className = "feedback incorrect";
+    playSound("incorrect");
     return;
   }
 
@@ -552,7 +556,7 @@ function checkCustomEquation() {
   const b = bSign === "+" ? bValue : -bValue;
   const c = cSign === "+" ? cValue : -cValue;
 
-  // Mostrar la ecuación
+  // Mostrar la ecuación que se está verificando
   displayEquation(a, b, c);
 
   // Verificar si es factorizable
@@ -569,34 +573,40 @@ function checkCustomEquation() {
     let sign1 = result.factor1 >= 0 ? "-" : "+";
     let sign2 = result.factor2 >= 0 ? "-" : "+";
 
-    // Ajustar para ecuación cuadrática general (a puede ser diferente de 1)
+    // Para ecuaciones con a ≠ 1
     if (a !== 1) {
-      // Para ecuaciones con a ≠ 1, necesitamos encontrar factores de a y c
-      // que sumen b. Esto es más complejo y simplificamos para este ejemplo
-      feedbackElement.textContent =
-        "¡Ecuación válida! Ahora intenta factorizarla. Nota: Para ecuaciones con a ≠ 1, la factorización puede ser más compleja.";
+      feedbackElement.innerHTML = `
+        <strong>¡Ecuación VÁLIDA y FACTORIZABLE!</strong><br>
+        Tu ecuación <strong>SÍ</strong> se puede factorizar.<br>
+        <small>Para ecuaciones con a ≠ 1, la factorización puede requerir métodos adicionales.</small>
+      `;
       feedbackElement.className = "feedback correct";
-
-      // Para simplificar, asumimos que podemos dividir toda la ecuación por a
-      // para obtener una ecuación con a=1
+      
+      // Calcular factores para la ecuación simplificada (dividiendo por a)
       const simplifiedB = b / a;
       const simplifiedC = c / a;
-
-      // Encontrar factores para la ecuación simplificada
       const simplifiedResult = isFactorizable(1, simplifiedB, simplifiedC);
+      
       if (simplifiedResult.factorizable) {
         factor1 = Math.abs(simplifiedResult.factor1);
         factor2 = Math.abs(simplifiedResult.factor2);
         sign1 = simplifiedResult.factor1 >= 0 ? "-" : "+";
         sign2 = simplifiedResult.factor2 >= 0 ? "-" : "+";
+        
+        // Agregar información adicional sobre la factorización simplificada
+        discriminantInfo.innerHTML += `<br><br><strong>Factorización simplificada:</strong><br>`;
+        discriminantInfo.innerHTML += `Dividiendo por ${a}: x² ${simplifiedB >= 0 ? '+' : ''}${simplifiedB}x ${simplifiedC >= 0 ? '+' : ''}${simplifiedC} = 0`;
       }
     } else {
-      feedbackElement.textContent =
-        "¡Ecuación válida! Ahora intenta factorizarla.";
+      feedbackElement.innerHTML = `
+        <strong>¡Ecuación VÁLIDA y FACTORIZABLE!</strong><br>
+        Tu ecuación <strong>SÍ</strong> se puede factorizar.<br>
+        Los factores son: (x ${sign1} ${factor1})(x ${sign2} ${factor2})
+      `;
       feedbackElement.className = "feedback correct";
     }
 
-    // Actualizar la ecuación actual
+    // Guardar la ecuación actual PERO NO CAMBIAR DE MODO AUTOMÁTICAMENTE
     currentEquation = {
       a: a,
       b: b,
@@ -609,16 +619,33 @@ function checkCustomEquation() {
       root2: result.factor2,
     };
 
-    // Cambiar a modo de factorización
-    currentMode = "factorization";
-    updateButtonStates();
+    // Cambiar texto del botón para permitir continuar con la factorización
+    checkBtn.textContent = "Continuar con Factorización";
+    checkBtn.onclick = function() {
+      // Solo cambiar a modo factorización cuando el usuario decida continuar
+      currentMode = "factorization";
+      updateButtonStates();
+      resetInputs();
+      playSound("click");
+    };
 
-    // Limpiar inputs de factorización
-    resetInputs();
   } else {
-    feedbackElement.textContent = `La ecuación no es factorizable: ${result.reason}`;
+    // ECUACIÓN NO FACTORIZABLE
+    feedbackElement.innerHTML = `
+      <strong>Ecuación NO FACTORIZABLE</strong><br>
+      ${result.reason}<br>
+      <small>Puedes intentar con otra ecuación o usar el método de fórmula general.</small>
+    `;
     feedbackElement.className = "feedback incorrect";
+    playSound("incorrect");
+    
+    // Mantener el botón en "Verificar Ecuación" para permitir nuevas verificaciones
+    checkBtn.textContent = "Verificar Ecuación";
+    checkBtn.onclick = checkCustomEquation;
   }
+  
+  // Reproducir sonido apropiado
+  playSound(result.factorizable ? "correct" : "incorrect");
 }
 
 // Siguiente ecuación
@@ -708,6 +735,7 @@ function initGame() {
 
 // Iniciar el juego cuando se carga la página
 window.addEventListener("load", initGame);
+
 
 
 
